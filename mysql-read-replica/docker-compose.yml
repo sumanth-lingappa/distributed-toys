@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mysql-master:
+    image: mysql:8.0
+    container_name: mysql-master
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: replica_test_db
+    volumes:
+      - ./master/conf.d:/etc/mysql/conf.d
+      - ./master/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - master-data:/var/lib/mysql
+    networks:
+      - mysql-replication-net
+
+  mysql-replica:
+    image: mysql:8.0
+    container_name: mysql-replica
+    restart: always
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: replica_test_db
+    depends_on:
+      - mysql-master
+    volumes:
+      - ./replica/conf.d:/etc/mysql/conf.d
+      - ./replica/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - replica-data:/var/lib/mysql
+    networks:
+      - mysql-replication-net
+
+volumes:
+  master-data:
+  replica-data:
+
+networks:
+  mysql-replication-net:
+    driver: bridge
