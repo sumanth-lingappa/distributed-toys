@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  mysql-shard1:
+    image: mysql:8.0
+    container_name: mysql-shard1
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: users
+    volumes:
+      - ./db-shard1/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+
+  mysql-shard2:
+    image: mysql:8.0
+    container_name: mysql-shard2
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: users
+    volumes:
+      - ./db-shard2/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
+
+  api-server:
+    build: ./api-server
+    container_name: api-server
+    depends_on:
+      - mysql-shard1
+      - mysql-shard2
+    ports:
+      - "5050:5000"
