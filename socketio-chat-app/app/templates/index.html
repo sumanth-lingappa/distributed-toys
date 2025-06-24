@@ -12,7 +12,9 @@
         <ul id="messages"></ul>
 
         <script>
-            const socket = io();
+            const socket = io({
+                transports: ["websocket"]
+            });
 
             console.log("Connecting...");
 
