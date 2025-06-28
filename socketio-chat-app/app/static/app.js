@@ -1,12 +1,9 @@
 // Creates a new Socket.IO client
-// Arguments:
-// - transports: array of transport methods (e.g., ["websocket"], ["polling"])
-//   "websocket" = full-duplex, low-latency
-//   "polling" = fallback HTTP-based transport
+//   https://socket.io/docs/v4/client-options/
 //   GET ws://localhost:5050/socket.io/?userId=abc&EIO=4&transport=websocket
 const socket = io({
     // "localhost:5050",
-    transports: ["websocket"],
+    transports: ["websocket"], // polling, webtransport
     // path: "/socket/io",
     // query: {userId: "abc"},
     // reconnection: true,
@@ -15,6 +12,7 @@ const socket = io({
     // timeout: 1000,
     // autoConnect: false,
     // forceNew: true,
+    // multiplex: true
 });
 
 console.log("Connecting to server...");
