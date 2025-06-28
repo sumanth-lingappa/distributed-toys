@@ -1,19 +1,20 @@
 // Creates a new Socket.IO client
 //   https://socket.io/docs/v4/client-options/
 //   GET ws://localhost:5050/socket.io/?userId=abc&EIO=4&transport=websocket
-const socket = io({
-    // "localhost:5050",
-    transports: ["websocket"], // polling, webtransport
-    // path: "/socket/io",
-    // query: {userId: "abc"},
-    // reconnection: true,
-    // reconnectionAttempts: 2,
-    // reconnectionDelay: 100,
-    // timeout: 1000,
-    // autoConnect: false,
-    // forceNew: true,
-    // multiplex: true
-});
+const socket = io(
+    // "http://localhost:5050",
+    {
+        transports: ["websocket"], // polling, webtransport
+        // path: "/socket/io",
+        // query: {userId: "abc"},
+        // reconnection: true,
+        // reconnectionAttempts: 2,
+        // reconnectionDelay: 100,
+        // timeout: 1000,
+        // autoConnect: false,
+        // forceNew: true,
+        // multiplex: true
+    });
 
 console.log("Connecting to server...");
 
