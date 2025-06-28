@@ -3,7 +3,11 @@ from flask_socketio import SocketIO, send
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins='*', async_mode="eventlet")
+socketio = SocketIO(app,
+                    cors_allowed_origins='*',
+                    ping_interval=5, # every 5s, cient sends "2" ping
+                    ping_timeout=60, # server will close connection if no "3"(pong) in 60s
+                    async_mode="eventlet")
 
 @app.route('/')
 def index():
