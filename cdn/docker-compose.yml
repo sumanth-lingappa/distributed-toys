@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  origin:
+    build: ./origin
+    container_name: origin
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./origin/origin_data:/app/origin_data
+
+  edge1:
+    build: ./edge
+    container_name: edge1
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./edge/cache1:/app/cache
+    depends_on:
+      - origin
+
+  edge2:
+    build: ./edge
+    container_name: edge2
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./edge/cache2:/app/cache
+    depends_on:
+      - origin
+
+  load-balancer:
+    build: ./load-balancer
+    container_name: load-balancer
+    ports:
+      - "7100:7000"
+    depends_on:
+      - edge1
+      - edge2
