@@ -55,19 +55,30 @@ int main()
     // convert and print the client IP and port
     char client_ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));
-    printf("Got connection from %s:%d", client_ip, ntohs(client_addr.sin_port));
+    printf("Got connection from %s:%d\n", client_ip, ntohs(client_addr.sin_port));
 
     // Client has connected. Liste to what client has to say
     char buffer[BUF_SIZE] = {0};
-    ssize_t bytes = read(client_fd, buffer, BUF_SIZE);
-    if (bytes > 0)
-    {
-        printf("Received from client: %s\n", buffer);
-    }
 
-    // Respond to the client, eg: echo back the client's request
-    int write_bytes = write(client_fd, buffer, strlen(buffer));
-    printf("Writtein %d bytes", write_bytes);
+    while (1)
+    {
+        memset(buffer, 0, BUF_SIZE);
+        ssize_t bytes = read(client_fd, buffer, BUF_SIZE);
+        if (bytes == 0)
+        {
+            printf("Client has closed the connection");
+            break;
+        }
+        if (bytes < 0)
+        {
+            perror("Read error");
+            break;
+        }
+
+        printf("Received from client: %s\n", buffer);
+        // Respond to the client, eg: echo back the client's request
+        write(client_fd, buffer, strlen(buffer));
+    }
 
     // close the sessions
     close(client_fd);

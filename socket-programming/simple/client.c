@@ -39,14 +39,32 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    // write
-    const char *msg = "Hello from client!";
-    write(client_fd, msg, strlen(msg));
-
-    // read
     char buffer[BUF_SIZE] = {0};
-    read(client_fd, buffer, sizeof(buffer));
-    printf("Server replied: %s\n", buffer);
+    char input[BUF_SIZE] = {0};
+    while (1)
+    {
+        // write
+        printf("Enter the message to send to server (type 'exit' to quit):\n");
+        if (fgets(input, BUF_SIZE, stdin) == NULL)
+        {
+            printf("Error or EOF while reading input\n");
+            break;
+        }
+        input[strcspn(input, "\n")] = 0;
+
+        if (strcmp(input, "exit") == 0)
+        {
+            printf("Client exiting...\n");
+            break;
+        }
+
+        write(client_fd, input, strlen(input));
+
+        // read
+        memset(buffer, 0, BUF_SIZE);
+        read(client_fd, buffer, sizeof(buffer));
+        printf("Server replied: %s\n", buffer);
+    }
 
     // close
     close(client_fd);
