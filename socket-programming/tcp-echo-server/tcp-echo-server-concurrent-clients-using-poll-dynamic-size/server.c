@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <signal.h>
 #include <sys/select.h>
+#include <sys/resource.h>
 #include <poll.h>
+#include <sys/syslimits.h>
 
 #define PORT 8080     // Server listens on this port
 #define BUF_SIZE 1024 // size of the read/write buffer
@@ -19,8 +21,20 @@ typedef struct
     char name[64];
 } Client;
 
+void raise_nofile_rlimit(void)
+{
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
+    {
+        rl.rlim_cur = 65536; // new soft limit
+        rl.rlim_max = 65536; // new hard limit
+        setrlimit(RLIMIT_NOFILE, &rl);
+    }
+}
 int main()
 {
+    printf("OPEN_MAX %d\n", OPEN_MAX);
+    raise_nofile_rlimit();
     int server_fd;
 
     // Create a TCP socket using IPv4. (AF_INET) and stream sockets (SOCK_STEAM). For UDP, it will be SOCK_DGRAM
@@ -112,7 +126,7 @@ int main()
             // Expand capacity if needed
             if (number_clients_connected >= client_capacity - 1)
             {
-                int new_capacity = client_capacity * 2;
+                int new_capacity = client_capacity + INITIAL_CLIENT_CAP;
                 clients = realloc(clients, sizeof(Client) * new_capacity);
                 poll_fds = realloc(poll_fds, sizeof(struct pollfd) * new_capacity);
                 for (int i = client_capacity; i < new_capacity; i++)
