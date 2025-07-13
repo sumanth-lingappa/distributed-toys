@@ -13,6 +13,12 @@
 
 #define INITIAL_CLIENT_CAP 1024
 
+typedef struct
+{
+    int fd;
+    char name[64];
+} Client;
+
 int main()
 {
     int server_fd;
@@ -58,17 +64,13 @@ int main()
     printf("Server listening on port %d...\n", PORT);
 
     int client_capacity = INITIAL_CLIENT_CAP;
-    // int clients[INITIAL_CLIENT_CAP];                 // to track connected clients FDs
-    // char client_names[INITIAL_CLIENT_CAP][64] = {0}; // to track connected clients FDs
-    // struct pollfd poll_fds[INITIAL_CLIENT_CAP];
-    int *clients = malloc(sizeof(int) * client_capacity);
-    char (*client_names)[64] = malloc(sizeof(char[64]) * client_capacity);
+    Client *clients = malloc(sizeof(Client) * client_capacity);
     struct pollfd *poll_fds = malloc(sizeof(struct pollfd) * client_capacity);
 
     for (int i = 0; i < client_capacity; i++)
     {
-        clients[i] = -1;
-        client_names[i][0] = '\0';
+        clients[i].fd = -1;
+        clients[i].name[0] = '\0';
     }
 
     int number_clients_connected = 0;
@@ -84,9 +86,13 @@ int main()
         // also watch all connected client sockets
         for (int i = 0; i < client_capacity; i++)
         {
-            if (clients[i] != -1)
+            if (clients[i].fd != -1)
             {
-                poll_fds[nfds].fd = clients[i];
+                if (nfds >= client_capacity)
+                {
+                    fprintf(stderr, "poll_fds[] overflow: nfds (%d) >= client_capacity (%d)\n", nfds, client_capacity);
+                }
+                poll_fds[nfds].fd = clients[i].fd;
                 poll_fds[nfds].events = POLLIN;
                 nfds++;
             }
@@ -107,13 +113,12 @@ int main()
             if (number_clients_connected >= client_capacity - 1)
             {
                 int new_capacity = client_capacity * 2;
-                clients = realloc(clients, sizeof(int) * new_capacity);
-                client_names = realloc(client_names, sizeof(char[64]) * new_capacity);
+                clients = realloc(clients, sizeof(Client) * new_capacity);
                 poll_fds = realloc(poll_fds, sizeof(struct pollfd) * new_capacity);
                 for (int i = client_capacity; i < new_capacity; i++)
                 {
-                    clients[i] = -1;
-                    client_names[i][0] = '\0';
+                    clients[i].fd = -1;
+                    clients[i].name[0] = '\0';
                 }
                 client_capacity = new_capacity;
                 printf("Incresed capacity to %d clients.\n", client_capacity);
@@ -137,21 +142,19 @@ int main()
             // convert and print the client IP and port
             char client_ip[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));
-            char client_name[64];
-            snprintf(client_name, sizeof(client_name), "[FD:%d|%s:%d]", client_fd, client_ip, ntohs(client_addr.sin_port));
-            snprintf(client_names[client_fd], sizeof(client_names[client_fd]), "%s", client_name);
             // add this new client to our client list
             int added = 0; // tracks if the client is added in the select loop or not
             for (int i = 0; i < client_capacity; i++)
             {
                 // find an empty slot
-                if (clients[i] == -1)
+                if (clients[i].fd == -1)
                 {
-                    clients[i] = client_fd;
+                    clients[i].fd = client_fd;
+                    snprintf(clients[i].name, sizeof(clients[i].name), "[FD:%d|%s:%d]", client_fd, client_ip, ntohs(client_addr.sin_port));
                     added = 1;
                     number_clients_connected += 1;
                     printf("Number of clients connected: %d\n", number_clients_connected);
-                    printf("New client: connected at FD: %s\n", client_name);
+                    printf("New client: connected at FD: %s\n", clients[i].name);
                     break;
                 }
             }
@@ -160,7 +163,6 @@ int main()
             {
                 printf("Too many clients. Closing FD %d\n", client_fd);
                 close(client_fd);
-                client_names[client_fd][0] = '\0';
             }
         }
 
@@ -179,14 +181,15 @@ int main()
                 if (bytes <= 0)
                 {
                     // client has disconnected or there was an error
-                    printf("Client %s has disconnected\n", client_names[fd]);
                     close(fd);
-                    client_names[fd][0] = '\0';
+                    // clients[i].name[0] = '\0';
                     for (int j = 0; j < client_capacity; j++)
                     {
-                        if (clients[j] == fd)
+                        if (clients[j].fd == fd)
                         {
-                            clients[j] = -1;
+                            printf("Client %s has disconnected.\n", clients[j].name);
+                            clients[j].fd = -1;
+                            clients[j].name[0] = '\0';
                             number_clients_connected -= 1;
                             printf("Number of clients connected: %d\n", number_clients_connected);
                             break;
@@ -196,7 +199,14 @@ int main()
                 else
                 {
                     // read the data from client and echo it back
-                    printf("Received from client:%s %s\n", client_names[fd], buffer);
+                    for (int j = 0; j < client_capacity; j++)
+                    {
+                        if (clients[j].fd == fd)
+                        {
+                            printf("Received from client:%s %s\n", clients[j].name, buffer);
+                            break;
+                        }
+                    }
                     write(fd, buffer, bytes);
                 }
             }
@@ -205,7 +215,6 @@ int main()
 
     close(server_fd);
     free(clients);
-    free(client_names);
     free(poll_fds);
 
     return 0;
