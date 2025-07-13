@@ -79,9 +79,9 @@ int main()
                 FD_SET(clients[i], &read_fds);
             }
         }
-        // struct timeval timeout;
-        // timeout.tv_sec = 5;
-        // timeout.tv_usec = 0;
+        struct timeval timeout;
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 0;
 
         // wait for something to happen
         // blocks until at least one socket is ready
@@ -89,14 +89,14 @@ int main()
                            &read_fds,  // set of FDs to monitor for reading
                            NULL,       // set of FDs to monitor for writing
                            NULL,       // set of FDs to monitor for exception events (rare)
-                                       //    &timeout);      // How long to wait before giving up
+                           //    &timeout);  // How long to wait before giving up
                            NULL);      // How long to wait before giving up
 
-        // if (ready == 0)
-        // {
-        //     printf("No activity in the last 5 seconds.\n");
-        //     break;
-        // }
+        if (ready == 0)
+        {
+            printf("Noting happened in this round\n");
+            break;
+        }
         if (ready < 0)
         {
             perror("select error");
