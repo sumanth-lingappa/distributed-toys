@@ -29,6 +29,12 @@ int main()
     addr.sin_addr.s_addr = INADDR_ANY; // Accept connection on any local IP
     addr.sin_port = htons(PORT);       // Convert port to network byte order
 
+    int opt = 1;
+    setsockopt(server_fd,
+               SOL_SOCKET,         // at this level
+               SO_REUSEADDR,       // allow reuse of local addresses, even if they are in TIME_WAIT state
+               &opt, sizeof(opt)); // enable this option
+
     // Bind the socket to the IP address and port
     int bind_ret = bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)); // typecast the sockaddr_in addr to the generic `sockaddr` struct which bind expects
     if (bind_ret < 0)
@@ -108,6 +114,12 @@ int main()
                 printf("accept failed\n");
                 continue;
             }
+            if (client_fd >= FD_SETSIZE)
+            {
+                printf("client_fd %d exceeds FD_SETSIZE %d - closing\n", client_fd, FD_SETSIZE);
+                close(client_fd);
+                continue;
+            }
 
             // convert and print the client IP and port
             char client_ip[INET_ADDRSTRLEN];
@@ -116,21 +128,22 @@ int main()
             snprintf(client_name, sizeof(client_name), "[FD:%d|%s:%d]", client_fd, client_ip, ntohs(client_addr.sin_port));
             snprintf(client_names[client_fd], sizeof(client_names[client_fd]), "%s", client_name);
             // add this new client to our client list
-            int added = 0;
+            int added = 0; // tracks if the client is added in the select loop or not
             for (int i = 0; i < FD_SETSIZE; i++)
             {
+                // find an empty slot
                 if (clients[i] == -1)
                 {
                     clients[i] = client_fd;
                     if (client_fd > max_fd)
                     {
                         max_fd = client_fd; // update max_fd for select()
-                        added = 1;
-                        number_clients_connected += 1;
-                        printf("Number of clients connected: %d\n", number_clients_connected);
-                        printf("New client: connected at FD: %s\n", client_name);
-                        break;
                     }
+                    added = 1;
+                    number_clients_connected += 1;
+                    printf("Number of clients connected: %d\n", number_clients_connected);
+                    printf("New client: connected at FD: %s\n", client_name);
+                    break;
                 }
             }
             // too many clients already
