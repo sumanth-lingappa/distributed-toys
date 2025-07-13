@@ -58,6 +58,7 @@ int main()
 
     fd_set read_fds;        // The set of sockets we are watching for "read" activity
     int max_fd = server_fd; // we will need to tell select() the hightest-numbered FD
+    int number_clients_connected = 0;
 
     while (1)
     {
@@ -82,7 +83,7 @@ int main()
                            &read_fds,  // set of FDs to monitor for reading
                            NULL,       // set of FDs to monitor for writing
                            NULL,       // set of FDs to monitor for exception events (rare)
-                        //    &timeout);      // How long to wait before giving up
+                                       //    &timeout);      // How long to wait before giving up
                            NULL);      // How long to wait before giving up
 
         // if (ready == 0)
@@ -125,7 +126,9 @@ int main()
                     {
                         max_fd = client_fd; // update max_fd for select()
                         added = 1;
-                        printf("New client connected at FD: %s\n", client_name);
+                        number_clients_connected += 1;
+                        printf("Number of clients connected: %d\n", number_clients_connected);
+                        printf("New client: connected at FD: %s\n", client_name);
                         break;
                     }
                 }
@@ -157,6 +160,8 @@ int main()
                     printf("Client %s has disconnected\n", client_names[fd]);
                     close(fd);
                     clients[i] = -1;
+                    number_clients_connected -= 1;
+                    printf("Number of clients connected: %d\n", number_clients_connected);
                 }
                 else
                 {
